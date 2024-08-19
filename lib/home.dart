@@ -7,6 +7,8 @@ import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:responsive_builder/responsive_builder.dart';
+import 'package:flutter_switch/flutter_switch.dart';
+
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -33,11 +35,15 @@ class _HomeState extends State<Home> {
   int pressure=0;
   int visibility=0;
   var country;
+    bool isFahrenheit = false;
+    bool isDarkMode = false;
+bool userOverride = false;
  // Define a mapping between weather conditions and image asset paths
   Map<String, String> weatherConditionToIcon = {
-    'Clear': 'assets/images/clear.png',
-    'Clouds': 'assets/images/clouds.png',
-    'Rain': 'assets/images/rain.png',
+    'Clear': 'images/clear.png',
+    'Clouds': 'images/clouds.png',
+    'Rain': 'images/rain.png',
+    
     // Add more weather conditions and image paths
   };
   Future getWeather() async {
@@ -112,21 +118,50 @@ this.visibility=mtokm(visibility);
   void initState() {
     super.initState();
     this.getWeather();
+   //  isDarkMode = isNightTime();
   }
+
+void toggleDarkMode() {
+  setState(() {
+    isDarkMode = !isDarkMode;
+    userOverride = true;
+  });
+}
+void toggleSwitch(bool value) {
+  setState(() {
+    isFahrenheit = value;
+  });
+}
 
 
   @override
   Widget build(BuildContext context) { 
-        return ScreenTypeLayout.builder(
+      
+       return Theme(
+      data: Theme.of(context).copyWith(
+        popupMenuTheme: PopupMenuThemeData(
+          color:  isDarkMode
+          ?  Color.fromARGB(255, 41, 40, 40)
+          : const Color.fromARGB(255, 38, 113, 124), // Background color of the popup menu
+          textStyle: TextStyle(
+            color: Color.fromARGB(255, 233, 241, 242), // Text color in the popup menu
+            fontWeight: FontWeight.bold, // Bold text
+            fontSize: 16, // Text size
+          ),
+        ),
+      ),
+       child:  ScreenTypeLayout.builder(
       mobile: (BuildContext context) => MobileNavBar(),
       desktop: (BuildContext context) => DeskTopNavBar(),
-    );
+       ));
   }
 
 
   Widget MobileNavBar() {
     return   Scaffold(
-      backgroundColor: Color.fromARGB(255,38,113,124),
+      backgroundColor: isDarkMode
+          ? Colors.black
+          : const Color.fromARGB(255, 38, 113, 124),
    body:  Stack(
       children: [
         Row(
@@ -138,7 +173,9 @@ this.visibility=mtokm(visibility);
         width: 40,
         margin: EdgeInsets.only(top: 20),
         decoration: BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(360)),color: Color.fromARGB(0, 61, 127, 137) ),
-      //  child:  Icon(Icons.person_outline,color: Color.fromARGB(255,233,241,242)),
+       child:    IconButton(
+  icon: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
+  onPressed: toggleDarkMode,)
        ),
         PopupMenuButton<String>(       
                    onSelected: (String result) {
@@ -147,22 +184,46 @@ this.visibility=mtokm(visibility);
                   //);
                 },
                 itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                  const PopupMenuItem<String>(
-                    value: 'Farehnheit',
-                    child: Row(
+                   PopupMenuItem<String>(
+                    value: 'settings',
+                  
+                  child:   Column(
                       children: [
-                        Text('Farehnheit',style: TextStyle(fontWeight: FontWeight.bold,color: Color.fromARGB(255,233,241,242)),)
+                         Row(
+                      children: [
+                        Text('Farehnheit',style: TextStyle(fontWeight: FontWeight.bold,color: Color.fromARGB(255,233,241,242)),),
+                 Spacer(),
+                     Switch(
+                value: isFahrenheit,
+                onChanged: toggleSwitch,
+                activeTrackColor: Colors.lightGreenAccent,      
+                activeColor: Colors.green,
+              ),
+
                       ],
                     ),
-                  ),
-                 
+                   // Row(
+                      // children: [
+                //  IconButton(
+  // icon: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
+  // onPressed: toggleDarkMode,
+// )
+                 //        Text('Farehnheit',style: TextStyle(fontWeight: FontWeight.bold,color: Color.fromARGB(255,233,241,242)),),
+                      // ],
+                    // )
+                      ],
+                    )
+                  
+                   )
                 ],
 
          child: Container(
         height: 40,
         width: 40,
         margin: EdgeInsets.only(top: 20),
-        decoration: BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(360)),color: Color.fromARGB(255,61,127,137) ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(360)),color: isDarkMode
+          ? Color.fromARGB(255, 41, 40, 40)
+          : const Color.fromARGB(255,61,127,137) ),
         child:  Icon(Icons.settings,color: Color.fromARGB(255,233,241,242)),
        ))
         ,]),
@@ -175,9 +236,9 @@ this.visibility=mtokm(visibility);
       Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-        Text('H:${temp_max.round()}\u00B0',style: TextStyle(color: Color.fromARGB(255,233,241,242),),),
+        Text('H:${isFahrenheit ? temp_maxf.round() : temp_max.round()}\u00B0',style: TextStyle(color: Color.fromARGB(255,233,241,242),),),
         SizedBox(width: 5,),
-        Text('L:${temp_min.round()}\u00B0',style: TextStyle(color: Color.fromARGB(255,233,241,242),),),
+        Text('L:${isFahrenheit ? temp_minf.round() : temp_min.round()}\u00B0',style: TextStyle(color: Color.fromARGB(255,233,241,242),),),
       ]),
        Align(
           alignment: Alignment.topCenter,
@@ -197,7 +258,7 @@ this.visibility=mtokm(visibility);
             items:[
               Column(children: [
               Stack(children: [ Text(
-              '${tempCelsius.round()}\u00B0', // Use Unicode for the degree symbol
+              '${isFahrenheit ? tempFahrenheit.round() :tempCelsius.round()}\u00B0', // Use Unicode for the degree symbol
               style: TextStyle(
                 fontSize: 150,
                 color: Color.fromARGB(255, 233, 241, 242),
@@ -208,7 +269,7 @@ this.visibility=mtokm(visibility);
             Opacity(
             opacity: 0.5,
            
-              child: Image.asset('images/clear.png',height:200, fit:BoxFit.cover,)
+              child: Image.asset(  weatherConditionToIcon[currently] ?? 'assets/images/default.png',height:200, fit:BoxFit.cover,)
               )
               ),
              
@@ -234,7 +295,7 @@ this.visibility=mtokm(visibility);
                     SizedBox(height: 10,),
                    Text('Feels Like',style:TextStyle(fontWeight: FontWeight.bold)) ,
                    SizedBox(height: 10,),
-                   Text(' ${feels_like.round()}°C',style:TextStyle(fontWeight: FontWeight.bold,fontSize: 25),)
+                   Text('  ${isFahrenheit ? feels_likef.round() : feels_like.round()}${isFahrenheit ? '°F' : '°C'}',style:TextStyle(fontWeight: FontWeight.bold,fontSize: 25),)
                 ])),
                    Container(
                   height: 100,
@@ -354,12 +415,7 @@ Widget DeskTopNavBar() {
 
 
 
-//dynamic background
 
 
 //dynamic weather
 
-//navigatable buttons
-//text effect
-//settings farehnite
-//
