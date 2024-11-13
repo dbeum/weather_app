@@ -8,6 +8,12 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:responsive_builder/responsive_builder.dart';
 import 'package:flutter_switch/flutter_switch.dart';
+import 'package:weather_web/humidity.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:animate_gradient/animate_gradient.dart';
+import 'package:draggable_home/draggable_home.dart';
+import 'package:vitality/vitality.dart';
+import 'package:weather_animation/weather_animation.dart';
 
 
 class Home extends StatefulWidget {
@@ -18,11 +24,14 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  bool _showOnboarding = false;
+  int _currentStep = 0;
+
  double tempCelsius = 0.0; // Initialize with a default value
   double tempFahrenheit = 0.0;// Temperature in Fahrenheit
   var description='.';
   var currently='.';
-  int humidity=0;
+  double humidity=0;
   double windSpeed=0;
   var cityname='.';
   double temp=0;
@@ -38,31 +47,50 @@ class _HomeState extends State<Home> {
     bool isFahrenheit = false;
     bool isDarkMode = false;
 bool userOverride = false;
+
+  final TextEditingController _searchController = TextEditingController();
  // Define a mapping between weather conditions and image asset paths
   Map<String, String> weatherConditionToIcon = {
-    'Clear': 'images/clear.png',
-    'Clouds': 'images/clouds.png',
-    'Rain': 'images/rain.png',
+    'Clear': 'images/cloud.gif',
+    'Clouds': 'images/cloud.gif',
+    'Rain': 'images/rain.gif',
+    'Hot': 'images/sun.gif',
+    'Snow': 'images/snow.gif' ,
+    'Mist': 'images/fog.gif',
+    'Fog': 'images/fog.gif',
+    'Smoke': 'images/smoke.gif',
+    'Haze': 'images/fog.gif',
+    'Thunderstorm': 'images/storm.gif',
+    'Hail': 'images/hail.gif',
+    'Cold': 'images/cold.gif',
+    'Tornado': 'images/tornado.gif',
+    'Freezing': 'images/freezing.gif'
     
     // Add more weather conditions and image paths
   };
-  Future getWeather() async {
-    LocationPermission permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      // Handle the case when the user denies the permission
-      return;
+  
+  Future getWeather({String city = ''}) async {
+    var url;
+    if (city.isEmpty) {
+      // Get current location weather
+      LocationPermission permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      url = Uri.parse(
+        'https://api.openweathermap.org/data/2.5/weather?lat=${position.latitude}&lon=${position.longitude}&appid=958a8cc7b5f973c4cc23ef8b1d1a623c',
+      );
+    } else {
+      // Get weather by city name
+      url = Uri.parse(
+        'https://api.openweathermap.org/data/2.5/weather?q=$city&appid=958a8cc7b5f973c4cc23ef8b1d1a623c',
+      );
     }
-
-    // Get the current location
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
-    // Fetch weather data based on the current location
-    var url = Uri.parse(
-      'https://api.openweathermap.org/data/2.5/weather?lat=${position.latitude}&lon=${position.longitude}&appid=958a8cc7b5f973c4cc23ef8b1d1a623c',
-    );
+    
     http.Response response = await http.get(url);
     var results = jsonDecode(response.body);
     print("Data from API: $results");
@@ -118,6 +146,7 @@ this.visibility=mtokm(visibility);
   void initState() {
     super.initState();
     this.getWeather();
+    _checkIfOnboardingCompleted();
    //  isDarkMode = isNightTime();
   }
 
@@ -134,102 +163,90 @@ void toggleSwitch(bool value) {
 }
 
 
-  @override
+
+  
+
+  Future<void> _checkIfOnboardingCompleted() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool completed = prefs.getBool('onboardingCompleted') ?? false;
+    
+    if (!completed) {
+      setState(() {
+        _showOnboarding = true;
+      });
+    }
+  }
+
+  void _markOnboardingAsComplete() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('onboardingCompleted', true);
+
+    setState(() {
+      _showOnboarding = false;
+    });
+  }
+
+ @override
   Widget build(BuildContext context) { 
       
-       return Theme(
-      data: Theme.of(context).copyWith(
-        popupMenuTheme: PopupMenuThemeData(
-          color:  isDarkMode
-          ?  Color.fromARGB(255, 41, 40, 40)
-          : const Color.fromARGB(255, 38, 113, 124), // Background color of the popup menu
-          textStyle: TextStyle(
-            color: Color.fromARGB(255, 233, 241, 242), // Text color in the popup menu
-            fontWeight: FontWeight.bold, // Bold text
-            fontSize: 16, // Text size
-          ),
-        ),
-      ),
-       child:  ScreenTypeLayout.builder(
+      return Scaffold(
+      body: Stack(
+        children: [ ScreenTypeLayout.builder(
       mobile: (BuildContext context) => MobileNavBar(),
       desktop: (BuildContext context) => DeskTopNavBar(),
-       ));
+       ),
+  
+  // Onboarding overlay
+          if (_showOnboarding)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _markOnboardingAsComplete,
+                child: OnboardingOverlay(
+                  currentStep: _currentStep,
+                  onNext: _nextStep,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _nextStep() {
+    if (_currentStep < 2) {
+      setState(() {
+        _currentStep++;
+      });
+    } else {
+      _markOnboardingAsComplete();
+    }
   }
 
 
   Widget MobileNavBar() {
-    return   Scaffold(
-      backgroundColor: isDarkMode
-          ? Colors.black
-          : const Color.fromARGB(255, 38, 113, 124),
-   body:  Stack(
+    return  DraggableHome(
+  title: Text("Today\'s Weather",style:TextStyle(fontWeight: FontWeight.bold)),
+  headerWidget: _buildHeaderWidget(),
+  body: [
+    
+    AnimateGradient(
+        primaryColors: const [
+           Color.fromARGB(255,61,127,137),
+          Colors.orange,
+          Colors.white,
+        ],
+        secondaryColors: const [
+          Color.fromARGB(255, 41, 40, 40),
+          Colors.blueAccent,
+          Colors.white,
+        ],
+        child:  Stack(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-
-       Container(
-        height: 40,
-        width: 40,
-        margin: EdgeInsets.only(top: 20),
-        decoration: BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(360)),color: Color.fromARGB(0, 61, 127, 137) ),
-       child:    IconButton(
-  icon: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
-  onPressed: toggleDarkMode,)
-       ),
-        PopupMenuButton<String>(       
-                   onSelected: (String result) {
-                //  ScaffoldMessenger.of(context).showSnackBar(
-                  //  SnackBar(content: Text('You selected: $result')),
-                  //);
-                },
-                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                   PopupMenuItem<String>(
-                    value: 'settings',
-                  
-                  child:   Column(
-                      children: [
-                         Row(
-                      children: [
-                        Text('Farehnheit',style: TextStyle(fontWeight: FontWeight.bold,color: Color.fromARGB(255,233,241,242)),),
-                 Spacer(),
-                     Switch(
-                value: isFahrenheit,
-                onChanged: toggleSwitch,
-                activeTrackColor: Colors.lightGreenAccent,      
-                activeColor: Colors.green,
-              ),
-
-                      ],
-                    ),
-                   // Row(
-                      // children: [
-                //  IconButton(
-  // icon: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
-  // onPressed: toggleDarkMode,
-// )
-                 //        Text('Farehnheit',style: TextStyle(fontWeight: FontWeight.bold,color: Color.fromARGB(255,233,241,242)),),
-                      // ],
-                    // )
-                      ],
-                    )
-                  
-                   )
-                ],
-
-         child: Container(
-        height: 40,
-        width: 40,
-        margin: EdgeInsets.only(top: 20),
-        decoration: BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(360)),color: isDarkMode
-          ? Color.fromARGB(255, 41, 40, 40)
-          : const Color.fromARGB(255,61,127,137) ),
-        child:  Icon(Icons.settings,color: Color.fromARGB(255,233,241,242)),
-       ))
-        ,]),
+        
+      
         Column(
       children: [
-        SizedBox(height: 70,),
+        SizedBox(height: 80,),
         Text( '$cityname',style: TextStyle(fontSize: 20,color: Color.fromARGB(255,233,241,242),fontWeight: FontWeight.w600),),
         SizedBox(height: 10,),
         
@@ -269,7 +286,7 @@ void toggleSwitch(bool value) {
             Opacity(
             opacity: 0.5,
            
-              child: Image.asset(  weatherConditionToIcon[currently] ?? 'assets/images/default.png',height:200, fit:BoxFit.cover,)
+              child: Image.asset(  weatherConditionToIcon[currently] ?? 'assets/images/cloud.gif',height:200, fit:BoxFit.cover,)
               )
               ),
              
@@ -288,7 +305,7 @@ void toggleSwitch(bool value) {
                 children: [
                  Container(
                   height: 100,
-                  width: 150,
+                  width: 130,
                   decoration: BoxDecoration(color:Colors.white,borderRadius: BorderRadius.all(Radius.circular(15))),
                   child:  
                   Column(children: [
@@ -297,9 +314,9 @@ void toggleSwitch(bool value) {
                    SizedBox(height: 10,),
                    Text('  ${isFahrenheit ? feels_likef.round() : feels_like.round()}${isFahrenheit ? '°F' : '°C'}',style:TextStyle(fontWeight: FontWeight.bold,fontSize: 25),)
                 ])),
-                   Container(
+                  Container(
                   height: 100,
-                  width: 150,
+                  width: 130,
                   decoration: BoxDecoration(color:Colors.white,borderRadius: BorderRadius.all(Radius.circular(15))),
                   child: Column(children: [
                     SizedBox(height: 10,),
@@ -307,26 +324,16 @@ void toggleSwitch(bool value) {
                     SizedBox(height: 10,),
                          Text('${windSpeed.round()}km/h',style:TextStyle(fontWeight: FontWeight.bold,fontSize: 25),),
                   ],)
-                )
+                ),
                ],),
                 SizedBox(height: 10,),
                Row(
                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
+                HumidityWidget(humidity: humidity),
                    Container(
                   height: 100,
-                  width: 150,
-                  decoration: BoxDecoration(color:Colors.white,borderRadius: BorderRadius.all(Radius.circular(15))),
-                  child: Column(children: [
-                    SizedBox(height: 10,),
-                     Text('Humidity',style: TextStyle(fontWeight: FontWeight.bold),),
-                     SizedBox(height: 10,),
-                  Text(' ${humidity}%',style:TextStyle(fontWeight: FontWeight.bold,fontSize: 25))
-                  ],)
-                ),
-                   Container(
-                  height: 100,
-                  width: 150,
+                  width: 130,
                   decoration: BoxDecoration(color:Colors.white,borderRadius: BorderRadius.all(Radius.circular(15))),
                   child: Column(
                     children: [
@@ -345,20 +352,21 @@ void toggleSwitch(bool value) {
                 children: [
                  Container(
                   height: 100,
-                  width: 150,
+                  width: 130,
                   decoration: BoxDecoration(color:Colors.white,borderRadius: BorderRadius.all(Radius.circular(15))),
                   child:  Column(
                     children: [
                       SizedBox(height: 10,),
                           Text('Visibility: ',style: TextStyle(fontWeight: FontWeight.bold)),
-                          SizedBox(height: 10,),
-                          Text('${visibility}km',style:TextStyle(fontWeight: FontWeight.bold,fontSize: 25))
+                          SizedBox(height: 2,),
+                          Text('${visibility}km',style:TextStyle(fontWeight: FontWeight.bold,fontSize: 25)),
+                        
                     ],
                   )
                 ),
                    Container(
                   height: 100,
-                  width: 150,
+                  width: 130,
                   decoration: BoxDecoration(color:Colors.white,borderRadius: BorderRadius.all(Radius.circular(15))),
                   child:     Column(children: [
                     SizedBox(height: 10,),                
@@ -393,17 +401,316 @@ void toggleSwitch(bool value) {
       ],
     ),
 
-      
-    );
+      ),
+
+   
+    
+
+    
+  ],
+   backgroundColor: Colors.grey[200]
+);
   }
 
 Widget DeskTopNavBar() {
-  return Container(
+ return  DraggableHome(
+  title: Text("Today\'s Weather",style:TextStyle(fontWeight: FontWeight.bold)),
+  headerWidget: _buildHeaderWidget(),
+  body: [
+    
+    AnimateGradient(
+        primaryColors: const [
+           Color.fromARGB(255,61,127,137),
+          Colors.orange,
+          Colors.white,
+        ],
+        secondaryColors: const [
+          Color.fromARGB(255, 41, 40, 40),
+          Colors.blueAccent,
+          Colors.white,
+        ],
+        child:  Stack(
+      children: [
+        
+      
+        Column(
+      children: [
+        SizedBox(height: 80,),
+        Text( '$cityname',style: TextStyle(fontSize: 20,color: Color.fromARGB(255,233,241,242),fontWeight: FontWeight.w600),),
+        SizedBox(height: 10,),
+        
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+        Text('H:${isFahrenheit ? temp_maxf.round() : temp_max.round()}\u00B0',style: TextStyle(color: Color.fromARGB(255,233,241,242),),),
+        SizedBox(width: 5,),
+        Text('L:${isFahrenheit ? temp_minf.round() : temp_min.round()}\u00B0',style: TextStyle(color: Color.fromARGB(255,233,241,242),),),
+      ]),
+       Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 80.0), // Adjust top padding as needed
+             child: CarouselSlider(
+                    options: CarouselOptions(
+                      height: 400.0,
+                      autoPlay: false,
+                      enlargeCenterPage: true,
+                      aspectRatio: 16 / 9,
+                      autoPlayCurve: Curves.fastOutSlowIn,
+                      enableInfiniteScroll: true,
+                      autoPlayAnimationDuration: Duration(milliseconds: 800),
+                      viewportFraction: 0.8,
+                    ),
+            items:[
+              Column(children: [
+              Stack(children: [ Text(
+              '${isFahrenheit ? tempFahrenheit.round() :tempCelsius.round()}\u00B0', // Use Unicode for the degree symbol
+              style: TextStyle(
+                fontSize: 150,
+                color: Color.fromARGB(255, 233, 241, 242),
+              ),
+            ), Positioned(
+              top: 20,
+              child:
+            Opacity(
+            opacity: 0.5,
+           
+              child: Image.asset(  weatherConditionToIcon[currently] ?? 'assets/images/cloud.gif',height:200, fit:BoxFit.cover,)
+              )
+              ),
+             
+           
+       ]
+              
+        ),Text('${description}',style: TextStyle(fontWeight: FontWeight.bold,color: Color.fromARGB(255, 233, 241, 242),fontSize: 15),),]),
+    
+       Container(
+        child: Column(
+          children: [
+            Column(
+              children: [
+               Row(
+                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                 Container(
+                  height: 100,
+                  width: 130,
+                  decoration: BoxDecoration(color:Colors.white,borderRadius: BorderRadius.all(Radius.circular(15))),
+                  child:  
+                  Column(children: [
+                    SizedBox(height: 10,),
+                   Text('Feels Like',style:TextStyle(fontWeight: FontWeight.bold)) ,
+                   SizedBox(height: 10,),
+                   Text('  ${isFahrenheit ? feels_likef.round() : feels_like.round()}${isFahrenheit ? '°F' : '°C'}',style:TextStyle(fontWeight: FontWeight.bold,fontSize: 25),)
+                ])),
+                  Container(
+                  height: 100,
+                  width: 130,
+                  decoration: BoxDecoration(color:Colors.white,borderRadius: BorderRadius.all(Radius.circular(15))),
+                  child: Column(children: [
+                    SizedBox(height: 10,),
+                    Text('Wind Speed',style: TextStyle(fontWeight: FontWeight.bold),),
+                    SizedBox(height: 10,),
+                         Text('${windSpeed.round()}km/h',style:TextStyle(fontWeight: FontWeight.bold,fontSize: 25),),
+                  ],)
+                ),
+               ],),
+                SizedBox(height: 10,),
+               Row(
+                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                HumidityWidget(humidity: humidity),
+                   Container(
+                  height: 100,
+                  width: 130,
+                  decoration: BoxDecoration(color:Colors.white,borderRadius: BorderRadius.all(Radius.circular(15))),
+                  child: Column(
+                    children: [
+                      SizedBox(height: 10,),
+                      Text('Pressure:',style: TextStyle(fontWeight: FontWeight.bold)),
+                     SizedBox(height: 10,),
+                      Text(' ${pressure}hpa',style:TextStyle(fontWeight: FontWeight.bold,fontSize: 25))
+                    ],
+                  )
+                )
+                ],
+               ),
+               SizedBox(height: 10,),
+                Row(
+                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                 Container(
+                  height: 100,
+                  width: 130,
+                  decoration: BoxDecoration(color:Colors.white,borderRadius: BorderRadius.all(Radius.circular(15))),
+                  child:  Column(
+                    children: [
+                      SizedBox(height: 10,),
+                          Text('Visibility: ',style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 2,),
+                          Text('${visibility}km',style:TextStyle(fontWeight: FontWeight.bold,fontSize: 25)),
+                        
+                    ],
+                  )
+                ),
+                   Container(
+                  height: 100,
+                  width: 130,
+                  decoration: BoxDecoration(color:Colors.white,borderRadius: BorderRadius.all(Radius.circular(15))),
+                  child:     Column(children: [
+                    SizedBox(height: 10,),                
+                       Text('Country: ',style: TextStyle(fontWeight: FontWeight.bold)),
+                      SizedBox(height: 10,),
+                       Text('${country}',style:TextStyle(fontWeight: FontWeight.bold,fontSize: 25))
+                  ],)
+                )
+               ],),
+              ],
+            ),
+             
+              
+           
+                          
+               
+            
+          ],
+        ),
+       )
+       ],
+        ),
+
+
+)
+       ),
+       
+      ],
+    ),
+          
+     
+      ],
+    ),
+
+      ),
+
    
-  
-  
-  );
+    
+
+    
+  ],
+   backgroundColor: Colors.grey[200]
+);
 }
+
+Widget _buildHeaderWidget() {
+    return Stack(children: [
+ Container(
+      color: Colors.grey[200],
+      child: Vitality.randomly(
+  background: Colors.grey[200],
+  maxOpacity: 0.8,
+  minOpacity: 0.3,
+  itemsCount: 80,
+  enableXMovements: false,
+  whenOutOfScreenMode: WhenOutOfScreenMode.Teleport,
+  maxSpeed: 1.5,
+  maxSize: 30,
+  minSpeed: 0.5,
+  randomItemsColors: [Colors.yellowAccent, Colors.white],
+  randomItemsBehaviours: [
+    ItemBehaviour(shape: ShapeType.Icon, icon: Icons.nightlight),
+    ItemBehaviour(shape: ShapeType.Icon, icon: Icons.sunny),
+    ItemBehaviour(shape: ShapeType.Icon,icon:Icons.cloud),
+  ],
+)
+        
+      
+    ),
+    Center(child:Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Farehnheit',style: TextStyle(fontWeight: FontWeight.bold),),
+              
+                     Switch(
+                value: isFahrenheit,
+                onChanged: toggleSwitch,
+                activeTrackColor: Colors.lightGreenAccent,      
+                activeColor: Colors.green,
+              ),
+
+                      ],
+                    ),)
+    ],);
+    
+   
+  }
+}
+
+
+
+
+class OnboardingOverlay extends StatelessWidget {
+  final int currentStep;
+  final VoidCallback onNext;
+
+  OnboardingOverlay({required this.currentStep, required this.onNext});
+
+  @override
+  Widget build(BuildContext context) {
+    String description = '';
+    IconData icon = Icons.circle;
+    String title = '';
+    
+    // Determine the current onboarding step
+    switch (currentStep) {
+      case 0:
+        title = 'Weather Overview';
+        description = 'See the current weather right here.';
+        icon = Icons.sunny;
+        break;
+      case 1:
+        title = 'Swipe Down';
+        description = 'Toggle Dark Mode and switch between °F and °C';
+        icon = Icons.arrow_downward;
+        break;
+      case 2:
+        title = 'Swipe Right';
+        description = 'Discover detailed weather info for your city';
+        icon = Icons.arrow_right;
+        break;
+    }
+
+    return GestureDetector(
+      onTap: onNext,
+      child: Container(
+        color: Colors.black.withOpacity(0.7),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 50),
+              SizedBox(height: 20),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 24),
+              ),
+              SizedBox(height: 10),
+              Text(
+                description,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: onNext,
+                child: Text('Next'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 
@@ -417,5 +724,54 @@ Widget DeskTopNavBar() {
 
 
 
-//dynamic weather
 
+
+
+/*
+Drizzle
+Thunderstorm
+
+
+
+
+Dust
+
+
+Ash
+Squall
+Tornado
+Hurricane
+Cold
+Hot
+Windy
+Breezy
+Freezing Rain
+Sleet
+Blowing Snow
+Heavy Rain
+Light Rain
+Heavy Snow
+Light Snow
+Ice Pellets (or Hail)
+Freezing Fog
+*/
+
+//location checking
+
+/*Future getWeather() async {
+    LocationPermission permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      // Handle the case when the user denies the permission
+      return;
+    }
+
+    // Get the current location
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    // Fetch weather data based on the current location
+    var url = Uri.parse(
+      'https://api.openweathermap.org/data/2.5/weather?lat=${position.latitude}&lon=${position.longitude}&appid=958a8cc7b5f973c4cc23ef8b1d1a623c',
+    ); */

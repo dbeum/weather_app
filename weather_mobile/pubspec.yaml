@@ -1,0 +1,36 @@
+name: weather_mobile
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.3.3 <4.0.0'
+
+dependencies:
+  carousel_slider: ^5.0.0
+  flutter:
+    sdk: flutter
+  flutter_switch: ^0.3.2
+  geolocator: ^12.0.0
+  http: ^1.2.2
+  responsive_builder: ^0.7.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/snow.png
+    - assets/images/clear.png
+    - assets/images/default.png
+    - assets/images/clouds.png
+    - assets/images/rain.png
+    - assets/images/raining.png
+    - assets/images/hot.png
+    - assets/images/mist.png
+    - assets/images/fog.png
+
