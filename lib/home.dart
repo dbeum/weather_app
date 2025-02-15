@@ -51,20 +51,19 @@ bool userOverride = false;
   final TextEditingController _searchController = TextEditingController();
  // Define a mapping between weather conditions and image asset paths
   Map<String, String> weatherConditionToIcon = {
-    'Clear': 'images/cloud.gif',
-    'Clouds': 'images/cloud.gif',
-    'Rain': 'images/rain.gif',
-    'Hot': 'images/sun.gif',
-    'Snow': 'images/snow.gif' ,
-    'Mist': 'images/fog.gif',
-    'Fog': 'images/fog.gif',
-    'Smoke': 'images/smoke.gif',
-    'Haze': 'images/fog.gif',
-    'Thunderstorm': 'images/storm.gif',
-    'Hail': 'images/hail.gif',
-    'Cold': 'images/cold.gif',
-    'Tornado': 'images/tornado.gif',
-    'Freezing': 'images/freezing.gif'
+    'Clear': 'assets/images/cloud.gif',
+    'Rain': 'assets/images/rain.gif',
+    'Hot': 'assets/images/sun.gif',
+    'Snow': 'assets/images/snow.gif' ,
+    'Mist': 'assets/images/fog.gif',
+    'Fog': 'assets/images/fog.gif',
+    'Smoke': 'assets/images/smoke.gif',
+    'Haze': 'assets/images/fog.gif',
+    'Thunderstorm': 'assets/images/storm.gif',
+    'Hail': 'assets/images/hail.gif',
+    'Cold': 'assets/images/cold.gif',
+    'Tornado': 'assets/images/tornado.gif',
+    'Freezing': 'assets/images/freezing.gif'
     
     // Add more weather conditions and image paths
   };
@@ -224,21 +223,25 @@ void toggleSwitch(bool value) {
 
 
   Widget MobileNavBar() {
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return  DraggableHome(
   title: Text("Today\'s Weather",style:TextStyle(fontWeight: FontWeight.bold)),
   headerWidget: _buildHeaderWidget(),
   body: [
     
     AnimateGradient(
-        primaryColors: const [
-           Color.fromARGB(255,61,127,137),
-          Colors.orange,
-          Colors.white,
+       primaryColors:  [
+         isDarkMode ? Color.fromARGB(255, 30, 58, 72)  : Color.fromARGB(255, 135, 206, 235), 
+isDarkMode ? Color.fromARGB(255, 52, 73, 94) : Color.fromARGB(255, 255, 167, 38), 
+isDarkMode  ? Color.fromARGB(255, 0, 0, 0) : Color.fromARGB(255, 255, 255, 255), 
+
         ],
-        secondaryColors: const [
-          Color.fromARGB(255, 41, 40, 40),
-          Colors.blueAccent,
-          Colors.white,
+        secondaryColors:  [
+       isDarkMode ? Color.fromARGB(255, 16, 32, 39)  : Color.fromARGB(255, 55, 71, 79), 
+isDarkMode   ? Color.fromARGB(255, 27, 73, 101) : Color.fromARGB(255, 41, 182, 246), 
+isDarkMode  ? Color.fromARGB(255, 18, 18, 18): Color.fromARGB(255, 245, 245, 245), 
+
+          
         ],
         child:  Stack(
       children: [
@@ -408,26 +411,30 @@ void toggleSwitch(bool value) {
 
     
   ],
-   backgroundColor: Colors.grey[200]
+   backgroundColor:    isDarkMode ?  Color.fromARGB(255, 42,39,48)  : Colors.grey[200],
 );
   }
 
 Widget DeskTopNavBar() {
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
  return  DraggableHome(
   title: Text("Today\'s Weather",style:TextStyle(fontWeight: FontWeight.bold)),
   headerWidget: _buildHeaderWidget(),
   body: [
     
     AnimateGradient(
-        primaryColors: const [
-           Color.fromARGB(255,61,127,137),
-          Colors.orange,
-          Colors.white,
+         primaryColors:  [
+         isDarkMode ? Color.fromARGB(255, 30, 58, 72)  : Color.fromARGB(255, 135, 206, 235), 
+isDarkMode ? Color.fromARGB(255, 52, 73, 94) : Color.fromARGB(255, 255, 167, 38), 
+isDarkMode  ? Color.fromARGB(255, 0, 0, 0) : Color.fromARGB(255, 255, 255, 255), 
+
         ],
-        secondaryColors: const [
-          Color.fromARGB(255, 41, 40, 40),
-          Colors.blueAccent,
-          Colors.white,
+        secondaryColors:  [
+       isDarkMode ? Color.fromARGB(255, 16, 32, 39)  : Color.fromARGB(255, 55, 71, 79), 
+isDarkMode   ? Color.fromARGB(255, 27, 73, 101) : Color.fromARGB(255, 41, 182, 246), 
+isDarkMode  ? Color.fromARGB(255, 18, 18, 18): Color.fromARGB(255, 245, 245, 245), 
+
+          
         ],
         child:  Stack(
       children: [
@@ -509,7 +516,7 @@ Widget DeskTopNavBar() {
                   decoration: BoxDecoration(color:Colors.white,borderRadius: BorderRadius.all(Radius.circular(15))),
                   child: Column(children: [
                     SizedBox(height: 10,),
-                    Text('Wind Speed',style: TextStyle(fontWeight: FontWeight.bold),),
+                    Text('Wind Speed',style: TextStyle(fontWeight: FontWeight.bold,),),
                     SizedBox(height: 10,),
                          Text('${windSpeed.round()}km/h',style:TextStyle(fontWeight: FontWeight.bold,fontSize: 25),),
                   ],)
@@ -597,16 +604,17 @@ Widget DeskTopNavBar() {
 
     
   ],
-   backgroundColor: Colors.grey[200]
+   backgroundColor:    isDarkMode ?  Color.fromARGB(255, 42,39,48)  : Colors.grey[200],
 );
 }
 
 Widget _buildHeaderWidget() {
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Stack(children: [
  Container(
       color: Colors.grey[200],
       child: Vitality.randomly(
-  background: Colors.grey[200],
+  background: isDarkMode?  Color.fromARGB(255, 42,39,48) :  Colors.grey[200],
   maxOpacity: 0.8,
   minOpacity: 0.3,
   itemsCount: 80,
@@ -669,7 +677,7 @@ class OnboardingOverlay extends StatelessWidget {
         break;
       case 1:
         title = 'Swipe Down';
-        description = 'Toggle Dark Mode and switch between °F and °C';
+        description = 'Switch between °F and °C';
         icon = Icons.arrow_downward;
         break;
       case 2:
