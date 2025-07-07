@@ -66,6 +66,7 @@ flutter:
     - assets/images/smoke.gif
     - assets/images/drizzle.gif
     - assets/images/logo.png
+    - assets/images/weatherl.png
 
 flutter_icons:
   android: true

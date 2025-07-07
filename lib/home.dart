@@ -258,7 +258,7 @@ Row(children: [
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                      Image.asset('assets/images/logo.png'),
+                      Image.asset('assets/images/weatherl.png'),
                     Text(
                       'Menu',
                       style: TextStyle(
@@ -507,7 +507,7 @@ Row(children: [
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Image.asset('assets/images/logo.png'),
+                    Image.asset('assets/images/weatherl.png'),
                     Text(
                       'Menu',
                       style: TextStyle(
